@@ -26,22 +26,16 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-[#F9F7F3] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center gap-2 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-[#E76F51] flex items-center justify-center">
-              <span className="text-white font-black text-lg">K</span>
-            </div>
-            <div className="text-left">
-              <h1 className="text-2xl font-black text-[#1A3B2E] leading-none" style={{fontFamily:"Playfair Display,serif"}}>KhelSakha</h1>
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest leading-none mt-0.5">by MGTF</p>
-            </div>
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 rounded-2xl bg-[#1A3B2E] flex items-center justify-center mx-auto mb-4">
+            <span className="text-white font-black text-2xl" style={{fontFamily:"Playfair Display,serif"}}>K</span>
           </div>
-          <p className="text-gray-500 text-sm">School Sports OS</p>
+          <h1 className="text-2xl font-bold text-[#1A3B2E]" style={{fontFamily:"Playfair Display,serif"}}>KhelSakha</h1>
+          <p className="text-gray-500 text-sm mt-1">School Sports OS · by MGTF</p>
           <p className="text-xs text-gray-400 mt-0.5 italic">Khelo. Seekho. Badho.</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm p-6">
-          <h2 className="text-base font-semibold text-[#1A3B2E] mb-5">Sign in to your account</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -87,15 +81,10 @@ const Login = () => {
           </div>
         </div>
 
-        <div className="mt-5 text-center space-y-1.5">
-          <div className="flex items-center justify-center gap-3">
-            <div className="h-px bg-gray-200 flex-1"></div>
-            <span className="text-xs text-gray-400">MGTF · Gwalior</span>
-            <div className="h-px bg-gray-200 flex-1"></div>
-          </div>
+        <div className="mt-4 text-center space-y-1">
           <p className="text-xs text-gray-400">
             By signing in you agree to our{" "}
-            <Link to="/privacy-policy" className="text-[#1A3B2E] hover:underline font-medium">Privacy Policy</Link>
+            <Link to="/privacy-policy" className="text-[#1A3B2E] hover:underline">Privacy Policy</Link>
           </p>
           <p className="text-xs text-gray-400">KhelSakha v6 · Miller Group Track Foundation</p>
         </div>
