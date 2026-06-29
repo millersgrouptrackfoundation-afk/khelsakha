@@ -20,6 +20,7 @@ import SessionCoach from './pages/SessionCoach'
 import PlanningAdmin from './pages/PlanningAdmin'
 import CurriculumLibrary from './pages/CurriculumLibrary'
 import StudentTrackerPro from './pages/StudentTrackerPro'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/" element={
             <ProtectedRoute>
               <Layout />
