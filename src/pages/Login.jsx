@@ -24,70 +24,103 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F7F3] flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-[#1A3B2E] flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-black text-2xl" style={{fontFamily:"Playfair Display,serif"}}>K</span>
+    <div style={{minHeight:"100vh", background:"#1A3B2E", display:"flex", alignItems:"center", justifyContent:"center", padding:"1rem", fontFamily:"DM Sans, sans-serif"}}>
+      <div style={{width:"100%", maxWidth:"380px"}}>
+
+        <div style={{textAlign:"center", marginBottom:"2rem"}}>
+          <div style={{
+            width:"64px", height:"64px", borderRadius:"16px",
+            background:"#E76F51", display:"flex", alignItems:"center",
+            justifyContent:"center", margin:"0 auto 1rem"
+          }}>
+            <span style={{color:"white", fontSize:"28px", fontWeight:"900", fontFamily:"Playfair Display, serif"}}>K</span>
           </div>
-          <h1 className="text-2xl font-bold text-[#1A3B2E]" style={{fontFamily:"Playfair Display,serif"}}>KhelSakha</h1>
-          <p className="text-gray-500 text-sm mt-1">School Sports OS · by MGTF</p>
-          <p className="text-xs text-gray-400 mt-0.5 italic">Khelo. Seekho. Badho.</p>
+          <h1 style={{color:"white", fontSize:"26px", fontWeight:"700", margin:"0 0 4px", fontFamily:"Playfair Display, serif"}}>KhelSakha</h1>
+          <p style={{color:"rgba(255,255,255,0.6)", fontSize:"13px", margin:"0 0 2px"}}>School Sports OS · by MGTF</p>
+          <p style={{color:"rgba(255,255,255,0.4)", fontSize:"11px", margin:"0", fontStyle:"italic"}}>Khelo. Seekho. Badho.</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <div style={{background:"white", borderRadius:"20px", padding:"28px", boxShadow:"0 25px 60px rgba(0,0,0,0.3)"}}>
+          <form onSubmit={handleSubmit}>
+            <div style={{marginBottom:"16px"}}>
+              <label style={{display:"block", fontSize:"13px", fontWeight:"600", color:"#374151", marginBottom:"6px"}}>Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 required
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51] text-sm"
+                style={{
+                  width:"100%", padding:"11px 14px", border:"1.5px solid #e5e7eb",
+                  borderRadius:"12px", fontSize:"14px", outline:"none",
+                  fontFamily:"DM Sans, sans-serif", boxSizing:"border-box",
+                  transition:"border-color 0.2s"
+                }}
+                onFocus={e => e.target.style.borderColor="#E76F51"}
+                onBlur={e => e.target.style.borderColor="#e5e7eb"}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+
+            <div style={{marginBottom:"20px"}}>
+              <label style={{display:"block", fontSize:"13px", fontWeight:"600", color:"#374151", marginBottom:"6px"}}>Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51] text-sm"
+                style={{
+                  width:"100%", padding:"11px 14px", border:"1.5px solid #e5e7eb",
+                  borderRadius:"12px", fontSize:"14px", outline:"none",
+                  fontFamily:"DM Sans, sans-serif", boxSizing:"border-box",
+                  transition:"border-color 0.2s"
+                }}
+                onFocus={e => e.target.style.borderColor="#E76F51"}
+                onBlur={e => e.target.style.borderColor="#e5e7eb"}
               />
             </div>
+
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+              <div style={{padding:"10px 14px", background:"#fef2f2", border:"1px solid #fecaca", borderRadius:"10px", fontSize:"13px", color:"#dc2626", marginBottom:"16px"}}>
                 {error}
               </div>
             )}
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-[#E76F51] text-white rounded-xl font-semibold hover:bg-[#d65f41] transition-colors disabled:opacity-50 text-sm"
+              style={{
+                width:"100%", padding:"13px", background:loading?"#f0a58f":"#E76F51",
+                color:"white", border:"none", borderRadius:"12px",
+                fontSize:"15px", fontWeight:"700", cursor:loading?"not-allowed":"pointer",
+                fontFamily:"DM Sans, sans-serif", transition:"background 0.2s",
+                boxShadow:"0 4px 15px rgba(231,111,81,0.4)"
+              }}
+              onMouseEnter={e => { if(!loading) e.target.style.background="#d65f41" }}
+              onMouseLeave={e => { if(!loading) e.target.style.background="#E76F51" }}
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-500">
+          <div style={{marginTop:"18px", textAlign:"center"}}>
+            <p style={{fontSize:"13px", color:"#6b7280", margin:"0"}}>
               Don't have an account?{" "}
-              <Link to="/register" className="text-[#E76F51] font-medium hover:underline">Register</Link>
+              <Link to="/register" style={{color:"#E76F51", fontWeight:"600", textDecoration:"none"}}>Register</Link>
             </p>
           </div>
         </div>
 
-        <div className="mt-4 text-center space-y-1">
-          <p className="text-xs text-gray-400">
+        <div style={{marginTop:"20px", textAlign:"center"}}>
+          <p style={{fontSize:"11px", color:"rgba(255,255,255,0.35)", margin:"0 0 4px"}}>
             By signing in you agree to our{" "}
-            <Link to="/privacy-policy" className="text-[#1A3B2E] hover:underline">Privacy Policy</Link>
+            <Link to="/privacy-policy" style={{color:"rgba(255,255,255,0.55)", textDecoration:"underline"}}>Privacy Policy</Link>
           </p>
-          <p className="text-xs text-gray-400">KhelSakha v6 · Miller Group Track Foundation</p>
+          <p style={{fontSize:"11px", color:"rgba(255,255,255,0.25)", margin:"0"}}>
+            KhelSakha v6 · Miller Group Track Foundation
+          </p>
         </div>
+
       </div>
     </div>
   )
