@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, ClipboardCheck, BarChart3,
   BookOpen, FileText, ClipboardList, CalendarDays,
   Package, Settings, LogOut, ChevronLeft, ChevronRight,
-  Bot, Timer, CalendarClock, Library, UserCheck
+  Bot, Timer, CalendarClock, Library, UserCheck, School
 } from "lucide-react"
 import { useState } from "react"
 
@@ -15,6 +15,7 @@ const Sidebar = () => {
 
   const adminLinks = [
     { to:"/dashboard", icon:LayoutDashboard, label:"Dashboard" },
+    { to:"/classes", icon:School, label:"Classes" },
     { to:"/students", icon:Users, label:"Students" },
     { to:"/attendance", icon:ClipboardCheck, label:"Attendance" },
     { to:"/skill-scores", icon:BarChart3, label:"Skill Scores" },

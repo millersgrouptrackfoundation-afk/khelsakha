@@ -6,6 +6,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
+import Classes from './pages/Classes'
 import Students from './pages/Students'
 import Attendance from './pages/Attendance'
 import SkillScores from './pages/SkillScores'
@@ -37,6 +38,7 @@ function App() {
           }>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="classes" element={<Classes />} />
             <Route path="students" element={<Students />} />
             <Route path="attendance" element={<Attendance />} />
             <Route path="skill-scores" element={<SkillScores />} />
