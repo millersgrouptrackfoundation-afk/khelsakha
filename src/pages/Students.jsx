@@ -15,99 +15,153 @@ const Students = () => {
   const [expanded, setExpanded] = useState(null)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
-  const [form, setForm] = useState({
-    full_name:"", class_id:"", roll_number:"", gender:"", date_of_birth:"",
-    medical_flags:[], emergency_contact:{name:"",phone:"",relation:""},
-    talent_notes:"", is_talent_flagged:false
-  })
+  const [fullName, setFullName] = useState("")
+  const [classId, setClassId] = useState("")
+  const [rollNumber, setRollNumber] = useState("")
+  const [gender, setGender] = useState("")
+  const [dob, setDob] = useState("")
+  const [medicalFlags, setMedicalFlags] = useState([])
+  const [ecName, setEcName] = useState("")
+  const [ecPhone, setEcPhone] = useState("")
+  const [ecRelation, setEcRelation] = useState("")
+  const [talentFlag, setTalentFlag] = useState(false)
+  const [talentNotes, setTalentNotes] = useState("")
+
   const medicalOptions = ["Asthma","Allergies","Heart Condition","Epilepsy","Diabetes","Physical Disability","Other"]
 
-  useEffect(() => { fetchStudents(); fetchClasses() }, [profile])
+  useEffect(() => {
+    if (profile?.school_id) {
+      fetchStudents()
+      fetchClasses()
+    }
+  }, [profile?.school_id])
 
   const showToast = (msg, type="success") => {
     setToast({msg, type})
-    setTimeout(() => setToast(null), 3000)
+    setTimeout(() => setToast(null), 3500)
   }
 
   const fetchStudents = async () => {
-    if (!profile?.school_id) return
+    console.log("Fetching students for school:", profile?.school_id)
     const { data, error } = await supabase
-      .from("students").select("*, classes(name, grade, section)")
-      .eq("school_id", profile?.school_id).order("full_name")
+      .from("students")
+      .select("*, classes(name, grade, section)")
+      .eq("school_id", profile.school_id)
+      .order("full_name")
+    console.log("Students result:", data, error)
     if (!error) setStudents(data || [])
   }
 
   const fetchClasses = async () => {
-    if (!profile?.school_id) return
     const { data } = await supabase
       .from("classes").select("*")
-      .eq("school_id", profile?.school_id).order("grade")
+      .eq("school_id", profile.school_id).order("grade")
     setClasses(data || [])
   }
 
-  const save = async () => {
-    if (!form.full_name.trim()) return
-    setSaving(true)
-    const payload = {
-      full_name: form.full_name.trim(),
-      roll_number: form.roll_number || null,
-      class_id: form.class_id || null,
-      date_of_birth: form.date_of_birth || null,
-      gender: form.gender || null,
-      medical_flags: JSON.stringify(form.medical_flags),
-      emergency_contact: JSON.stringify(form.emergency_contact),
-      talent_notes: form.talent_notes || null,
-      is_talent_flagged: form.is_talent_flagged,
-      school_id: profile?.school_id
-    }
-    const { error } = editing
-      ? await supabase.from("students").update(payload).eq("id", editing.id)
-      : await supabase.from("students").insert([payload])
+  const handleEnroll = async () => {
+    console.log("Enroll button clicked")
+    console.log("Full name:", fullName)
+    console.log("School ID:", profile?.school_id)
 
-    setSaving(false)
-    if (error) {
-      showToast("Failed to save student. Please try again.", "error")
+    if (!fullName.trim()) {
+      showToast("Please enter student name", "error")
       return
     }
-    showToast(editing ? `${form.full_name} updated successfully` : `${form.full_name} enrolled successfully`)
-    setFilterGrade("")
+    if (!profile?.school_id) {
+      showToast("No school found. Please log out and log in again.", "error")
+      return
+    }
+
+    setSaving(true)
+    console.log("Saving student...")
+
+    const payload = {
+      full_name: fullName.trim(),
+      roll_number: rollNumber || null,
+      class_id: classId || null,
+      date_of_birth: dob || null,
+      gender: gender || null,
+      medical_flags: JSON.stringify(medicalFlags),
+      emergency_contact: JSON.stringify({ name:ecName, phone:ecPhone, relation:ecRelation }),
+      talent_notes: talentNotes || null,
+      is_talent_flagged: talentFlag,
+      school_id: profile.school_id
+    }
+
+    console.log("Payload:", payload)
+
+    let error = null
+
+    if (editing) {
+      const result = await supabase.from("students").update(payload).eq("id", editing.id)
+      error = result.error
+      console.log("Update result:", result)
+    } else {
+      const result = await supabase.from("students").insert([payload])
+      error = result.error
+      console.log("Insert result:", result)
+    }
+
+    setSaving(false)
+
+    if (error) {
+      console.error("Supabase error:", error.message, error.code, error.details)
+      showToast(`Error: ${error.message}`, "error")
+      return
+    }
+
+    console.log("Student saved successfully!")
+    showToast(editing ? `${fullName} updated` : `${fullName} enrolled successfully`)
     resetForm()
+    setFilterGrade("")
     await fetchStudents()
   }
 
   const resetForm = () => {
-    setShowForm(false); setEditing(null)
-    setForm({ full_name:"", class_id:"", roll_number:"", gender:"", date_of_birth:"",
-      medical_flags:[], emergency_contact:{name:"",phone:"",relation:""},
-      talent_notes:"", is_talent_flagged:false })
+    setShowForm(false)
+    setEditing(null)
+    setFullName("")
+    setClassId("")
+    setRollNumber("")
+    setGender("")
+    setDob("")
+    setMedicalFlags([])
+    setEcName("")
+    setEcPhone("")
+    setEcRelation("")
+    setTalentFlag(false)
+    setTalentNotes("")
   }
 
   const del = async (id, name) => {
-    if (!confirm(`Delete ${name}? This cannot be undone.`)) return
+    if (!confirm(`Delete ${name}?`)) return
     const { error } = await supabase.from("students").delete().eq("id", id)
     if (!error) { showToast(`${name} removed`); fetchStudents() }
-    else showToast("Failed to delete student", "error")
+    else showToast("Failed to delete", "error")
   }
 
   const openEdit = (student) => {
     setEditing(student)
-    setForm({
-      full_name: student.full_name, class_id: student.class_id||"",
-      roll_number: student.roll_number||"", gender: student.gender||"",
-      date_of_birth: student.date_of_birth||"",
-      medical_flags: Array.isArray(student.medical_flags)?student.medical_flags:JSON.parse(student.medical_flags||"[]"),
-      emergency_contact: typeof student.emergency_contact==="object"&&student.emergency_contact?student.emergency_contact:JSON.parse(student.emergency_contact||"{}"),
-      talent_notes: student.talent_notes||"", is_talent_flagged: student.is_talent_flagged||false
-    })
+    setFullName(student.full_name)
+    setClassId(student.class_id||"")
+    setRollNumber(student.roll_number||"")
+    setGender(student.gender||"")
+    setDob(student.date_of_birth||"")
+    setMedicalFlags(Array.isArray(student.medical_flags)?student.medical_flags:JSON.parse(student.medical_flags||"[]"))
+    const ec = typeof student.emergency_contact==="object"&&student.emergency_contact?student.emergency_contact:JSON.parse(student.emergency_contact||"{}")
+    setEcName(ec.name||"")
+    setEcPhone(ec.phone||"")
+    setEcRelation(ec.relation||"")
+    setTalentFlag(student.is_talent_flagged||false)
+    setTalentNotes(student.talent_notes||"")
     setShowForm(true)
   }
 
   const toggleMedical = (flag) => {
-    setForm(prev => ({...prev,
-      medical_flags: prev.medical_flags.includes(flag)
-        ? prev.medical_flags.filter(f=>f!==flag)
-        : [...prev.medical_flags, flag]
-    }))
+    setMedicalFlags(prev =>
+      prev.includes(flag) ? prev.filter(f=>f!==flag) : [...prev, flag]
+    )
   }
 
   const grades = [...new Set(classes.map(c => c.grade).filter(Boolean))]
@@ -126,9 +180,7 @@ const Students = () => {
       <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
         <p className="text-5xl mb-4">🏫</p>
         <h3 className="font-bold text-[#1A3B2E] text-lg mb-2">Create classes first</h3>
-        <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">
-          Before enrolling students you need to create your school classes with grades and sections.
-        </p>
+        <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">Before enrolling students you need to create your school classes.</p>
         <Link to="/classes" className="bg-[#E76F51] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#d65f41] transition-colors inline-block">
           Go to Classes →
         </Link>
@@ -139,8 +191,8 @@ const Students = () => {
   return (
     <div>
       {toast && (
-        <div className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-lg text-white text-sm font-medium transition-all ${toast.type==="error" ? "bg-red-500" : "bg-[#1A3B2E]"}`}>
-          {toast.type !== "error" && <CheckCircle size={18} />}
+        <div className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-lg text-white text-sm font-semibold ${toast.type==="error"?"bg-red-500":"bg-[#1A3B2E]"}`}>
+          {toast.type!=="error" && <CheckCircle size={18} />}
           {toast.msg}
         </div>
       )}
@@ -148,7 +200,7 @@ const Students = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-[#1A3B2E]" style={{fontFamily:"Playfair Display,serif"}}>Students</h1>
-          <p className="text-gray-600 mt-1">{students.length} students enrolled across {classes.length} classes</p>
+          <p className="text-gray-600 mt-1">{students.length} students · {classes.length} classes</p>
         </div>
         {!showForm && (
           <button onClick={() => { resetForm(); setShowForm(true) }}
@@ -176,17 +228,18 @@ const Students = () => {
 
       {showForm ? (
         <div className="bg-white rounded-2xl shadow-sm p-6 max-w-2xl">
-          <h2 className="text-xl font-bold text-[#1A3B2E] mb-6">{editing ? "Edit Student" : "Enroll New Student"}</h2>
+          <h2 className="text-xl font-bold text-[#1A3B2E] mb-6">{editing?"Edit Student":"Enroll New Student"}</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Student Full Name *</label>
-              <input value={form.full_name} onChange={e => setForm({...form,full_name:e.target.value})}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="e.g. Amit Kumar" />
+              <input value={fullName} onChange={e => setFullName(e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]"
+                placeholder="e.g. Amit Kumar" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
-                <select value={form.class_id} onChange={e => setForm({...form,class_id:e.target.value})}
+                <select value={classId} onChange={e => setClassId(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]">
                   <option value="">Select class...</option>
                   {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -194,14 +247,15 @@ const Students = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number</label>
-                <input value={form.roll_number} onChange={e => setForm({...form,roll_number:e.target.value})}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="e.g. 001" />
+                <input value={rollNumber} onChange={e => setRollNumber(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]"
+                  placeholder="e.g. 001" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                <select value={form.gender} onChange={e => setForm({...form,gender:e.target.value})}
+                <select value={gender} onChange={e => setGender(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]">
                   <option value="">Select...</option>
                   <option value="male">Male</option>
@@ -211,56 +265,55 @@ const Students = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                <input type="date" value={form.date_of_birth} onChange={e => setForm({...form,date_of_birth:e.target.value})}
+                <input type="date" value={dob} onChange={e => setDob(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]" />
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Medical Conditions <span className="text-gray-400 font-normal">(optional)</span></label>
               <div className="flex flex-wrap gap-2">
                 {medicalOptions.map(flag => (
                   <button key={flag} type="button" onClick={() => toggleMedical(flag)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                      form.medical_flags.includes(flag) ? "bg-red-100 text-red-700 border-red-300" : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"}`}>
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${medicalFlags.includes(flag)?"bg-red-100 text-red-700 border-red-300":"bg-white text-gray-500 border-gray-200 hover:border-gray-400"}`}>
                     {flag}
                   </button>
                 ))}
               </div>
             </div>
-
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Emergency Contact Name</label>
-                <input value={form.emergency_contact.name} onChange={e => setForm({...form,emergency_contact:{...form.emergency_contact,name:e.target.value}})}
+                <label className="block text-xs text-gray-500 mb-1">Emergency Contact</label>
+                <input value={ecName} onChange={e => setEcName(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="Parent name" />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Parent Phone Number</label>
-                <input value={form.emergency_contact.phone} onChange={e => setForm({...form,emergency_contact:{...form.emergency_contact,phone:e.target.value}})}
+                <label className="block text-xs text-gray-500 mb-1">Phone Number</label>
+                <input value={ecPhone} onChange={e => setEcPhone(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="Phone" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Relation</label>
-                <input value={form.emergency_contact.relation} onChange={e => setForm({...form,emergency_contact:{...form.emergency_contact,relation:e.target.value}})}
+                <input value={ecRelation} onChange={e => setEcRelation(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="e.g. Father" />
               </div>
             </div>
-
             <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
-              <input type="checkbox" id="talent" checked={form.is_talent_flagged} onChange={e => setForm({...form,is_talent_flagged:e.target.checked})} className="w-4 h-4 accent-[#E76F51]" />
+              <input type="checkbox" id="talent" checked={talentFlag} onChange={e => setTalentFlag(e.target.checked)} className="w-4 h-4 accent-[#E76F51]" />
               <label htmlFor="talent" className="text-sm font-medium text-amber-800 flex items-center gap-2">
                 <Star size={14} className="fill-amber-500 text-amber-500" /> Flag as talented athlete
               </label>
             </div>
-            {form.is_talent_flagged && (
-              <textarea value={form.talent_notes} onChange={e => setForm({...form,talent_notes:e.target.value})} rows={2}
-                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="Describe athletic potential..." />
+            {talentFlag && (
+              <textarea value={talentNotes} onChange={e => setTalentNotes(e.target.value)} rows={2}
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]"
+                placeholder="Describe athletic potential..." />
             )}
-
             <div className="flex gap-3 pt-2">
-              <button type="button" onClick={resetForm} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-gray-600 text-sm">Cancel</button>
-              <button type="button" onClick={save} disabled={!form.full_name.trim() || saving}
+              <button type="button" onClick={resetForm}
+                className="flex-1 py-2.5 border border-gray-300 rounded-xl text-gray-600 text-sm hover:bg-gray-50">
+                Cancel
+              </button>
+              <button type="button" onClick={handleEnroll} disabled={!fullName.trim() || saving}
                 className="flex-1 py-2.5 bg-[#E76F51] text-white rounded-xl hover:bg-[#d65f41] disabled:opacity-50 text-sm font-semibold transition-colors">
                 {saving ? "Saving..." : editing ? "Update Student" : "Enroll Student"}
               </button>
@@ -292,7 +345,7 @@ const Students = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={e=>{e.stopPropagation();openEdit(student)}} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit size={16} /></button>
-                  <button type="button" onClick={e=>{e.stopPropagation();del(student.id, student.full_name)}} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
+                  <button type="button" onClick={e=>{e.stopPropagation();del(student.id,student.full_name)}} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
                   {expanded===student.id?<ChevronUp size={18} className="text-gray-400"/>:<ChevronDown size={18} className="text-gray-400"/>}
                 </div>
               </div>
@@ -313,24 +366,21 @@ const Students = () => {
               )}
             </div>
           ))}
-
-          {students.length > 0 && filtered.length === 0 && (
-            <div className="bg-white rounded-2xl p-8 text-center text-gray-400">
-              <p className="text-3xl mb-2">🔍</p>
-              <p className="font-medium text-gray-500">No students found in {filterGrade ? `Grade ${filterGrade}` : "your search"}</p>
-              <p className="text-sm mt-1">Try a different grade or search term</p>
-            </div>
-          )}
-
-          {students.length === 0 && (
+          {students.length===0 && (
             <div className="bg-white rounded-2xl p-12 text-center">
               <p className="text-4xl mb-3">👤</p>
               <p className="font-medium text-gray-600 mb-1">No students enrolled yet</p>
               <p className="text-sm text-gray-400 mb-5">Click Add Student to enroll your first student</p>
               <button onClick={() => { resetForm(); setShowForm(true) }}
-                className="bg-[#E76F51] text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-[#d65f41] transition-colors">
+                className="bg-[#E76F51] text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-[#d65f41]">
                 Add First Student
               </button>
+            </div>
+          )}
+          {students.length>0 && filtered.length===0 && (
+            <div className="bg-white rounded-2xl p-8 text-center text-gray-400">
+              <p className="text-3xl mb-2">🔍</p>
+              <p>No students match your search</p>
             </div>
           )}
         </div>
