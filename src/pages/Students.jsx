@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from "react"
 import { useAuth } from "../contexts/AuthContext"
 import { supabase } from "../lib/supabase"
-import { Plus, Edit, Trash2, Search, Star, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react"
+import { Plus, Edit, Trash2, Search, Star, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from "lucide-react"
 import { Link } from "react-router-dom"
 
 const Students = () => {
@@ -13,8 +13,10 @@ const Students = () => {
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
   const [expanded, setExpanded] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState(null)
   const [form, setForm] = useState({
-    full_name:"", roll_number:"", class_id:"", date_of_birth:"", gender:"",
+    full_name:"", class_id:"", roll_number:"", gender:"", date_of_birth:"",
     medical_flags:[], emergency_contact:{name:"",phone:"",relation:""},
     talent_notes:"", is_talent_flagged:false
   })
@@ -22,14 +24,21 @@ const Students = () => {
 
   useEffect(() => { fetchStudents(); fetchClasses() }, [profile])
 
+  const showToast = (msg, type="success") => {
+    setToast({msg, type})
+    setTimeout(() => setToast(null), 3000)
+  }
+
   const fetchStudents = async () => {
-    const { data } = await supabase
+    if (!profile?.school_id) return
+    const { data, error } = await supabase
       .from("students").select("*, classes(name, grade, section)")
       .eq("school_id", profile?.school_id).order("full_name")
-    setStudents(data || [])
+    if (!error) setStudents(data || [])
   }
 
   const fetchClasses = async () => {
+    if (!profile?.school_id) return
     const { data } = await supabase
       .from("classes").select("*")
       .eq("school_id", profile?.school_id).order("grade")
@@ -37,8 +46,10 @@ const Students = () => {
   }
 
   const save = async () => {
+    if (!form.full_name.trim()) return
+    setSaving(true)
     const payload = {
-      full_name: form.full_name,
+      full_name: form.full_name.trim(),
       roll_number: form.roll_number || null,
       class_id: form.class_id || null,
       date_of_birth: form.date_of_birth || null,
@@ -49,34 +60,41 @@ const Students = () => {
       is_talent_flagged: form.is_talent_flagged,
       school_id: profile?.school_id
     }
-    if (editing) {
-      await supabase.from("students").update(payload).eq("id", editing.id)
-    } else {
-      await supabase.from("students").insert([payload])
+    const { error } = editing
+      ? await supabase.from("students").update(payload).eq("id", editing.id)
+      : await supabase.from("students").insert([payload])
+
+    setSaving(false)
+    if (error) {
+      showToast("Failed to save student. Please try again.", "error")
+      return
     }
+    showToast(editing ? `${form.full_name} updated successfully` : `${form.full_name} enrolled successfully`)
+    setFilterGrade("")
     resetForm()
-    fetchStudents()
+    await fetchStudents()
   }
 
   const resetForm = () => {
     setShowForm(false); setEditing(null)
-    setForm({ full_name:"", roll_number:"", class_id:"", date_of_birth:"", gender:"",
+    setForm({ full_name:"", class_id:"", roll_number:"", gender:"", date_of_birth:"",
       medical_flags:[], emergency_contact:{name:"",phone:"",relation:""},
       talent_notes:"", is_talent_flagged:false })
   }
 
-  const del = async (id) => {
-    if (!confirm("Delete this student?")) return
-    await supabase.from("students").delete().eq("id", id)
-    fetchStudents()
+  const del = async (id, name) => {
+    if (!confirm(`Delete ${name}? This cannot be undone.`)) return
+    const { error } = await supabase.from("students").delete().eq("id", id)
+    if (!error) { showToast(`${name} removed`); fetchStudents() }
+    else showToast("Failed to delete student", "error")
   }
 
   const openEdit = (student) => {
     setEditing(student)
     setForm({
-      full_name: student.full_name, roll_number: student.roll_number||"",
-      class_id: student.class_id||"", date_of_birth: student.date_of_birth||"",
-      gender: student.gender||"",
+      full_name: student.full_name, class_id: student.class_id||"",
+      roll_number: student.roll_number||"", gender: student.gender||"",
+      date_of_birth: student.date_of_birth||"",
       medical_flags: Array.isArray(student.medical_flags)?student.medical_flags:JSON.parse(student.medical_flags||"[]"),
       emergency_contact: typeof student.emergency_contact==="object"&&student.emergency_contact?student.emergency_contact:JSON.parse(student.emergency_contact||"{}"),
       talent_notes: student.talent_notes||"", is_talent_flagged: student.is_talent_flagged||false
@@ -94,24 +112,24 @@ const Students = () => {
 
   const grades = [...new Set(classes.map(c => c.grade).filter(Boolean))]
   const filtered = students.filter(s => {
-    const matchSearch = s.full_name.toLowerCase().includes(search.toLowerCase()) || (s.roll_number||"").toLowerCase().includes(search.toLowerCase())
+    const matchSearch = s.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      (s.roll_number||"").toLowerCase().includes(search.toLowerCase())
     const matchGrade = !filterGrade || s.classes?.grade === filterGrade
     return matchSearch && matchGrade
   })
 
-  if (classes.length === 0 && !showForm) return (
+  if (classes.length === 0) return (
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-[#1A3B2E]" style={{fontFamily:"Playfair Display,serif"}}>Students</h1>
       </div>
       <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-        <p className="text-5xl mb-4">👨‍🎓</p>
+        <p className="text-5xl mb-4">🏫</p>
         <h3 className="font-bold text-[#1A3B2E] text-lg mb-2">Create classes first</h3>
         <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">
-          Before adding students you need to create your school classes. Go to Classes and add your grades and sections.
+          Before enrolling students you need to create your school classes with grades and sections.
         </p>
-        <Link to="/classes"
-          className="bg-[#E76F51] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#d65f41] transition-colors inline-block">
+        <Link to="/classes" className="bg-[#E76F51] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#d65f41] transition-colors inline-block">
           Go to Classes →
         </Link>
       </div>
@@ -120,15 +138,24 @@ const Students = () => {
 
   return (
     <div>
+      {toast && (
+        <div className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-lg text-white text-sm font-medium transition-all ${toast.type==="error" ? "bg-red-500" : "bg-[#1A3B2E]"}`}>
+          {toast.type !== "error" && <CheckCircle size={18} />}
+          {toast.msg}
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-[#1A3B2E]" style={{fontFamily:"Playfair Display,serif"}}>Students</h1>
           <p className="text-gray-600 mt-1">{students.length} students enrolled across {classes.length} classes</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(true) }}
-          className="bg-[#E76F51] text-white px-6 py-2 rounded-full hover:bg-[#d65f41] transition-colors flex items-center gap-2 text-sm font-medium">
-          <Plus size={18} /> Add Student
-        </button>
+        {!showForm && (
+          <button onClick={() => { resetForm(); setShowForm(true) }}
+            className="bg-[#E76F51] text-white px-6 py-2 rounded-full hover:bg-[#d65f41] transition-colors flex items-center gap-2 text-sm font-medium">
+            <Plus size={18} /> Add Student
+          </button>
+        )}
       </div>
 
       {!showForm && (
@@ -149,47 +176,48 @@ const Students = () => {
 
       {showForm ? (
         <div className="bg-white rounded-2xl shadow-sm p-6 max-w-2xl">
-          <h2 className="text-xl font-bold text-[#1A3B2E] mb-6">{editing ? "Edit Student" : "New Student"}</h2>
+          <h2 className="text-xl font-bold text-[#1A3B2E] mb-6">{editing ? "Edit Student" : "Enroll New Student"}</h2>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                <input value={form.full_name} onChange={e => setForm({...form,full_name:e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="Student name" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number</label>
-                <input value={form.roll_number} onChange={e => setForm({...form,roll_number:e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="e.g. 101" />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Student Full Name *</label>
+              <input value={form.full_name} onChange={e => setForm({...form,full_name:e.target.value})}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="e.g. Amit Kumar" />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
                 <select value={form.class_id} onChange={e => setForm({...form,class_id:e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]">
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]">
                   <option value="">Select class...</option>
                   {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                <input type="date" value={form.date_of_birth} onChange={e => setForm({...form,date_of_birth:e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number</label>
+                <input value={form.roll_number} onChange={e => setForm({...form,roll_number:e.target.value})}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="e.g. 001" />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
                 <select value={form.gender} onChange={e => setForm({...form,gender:e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]">
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]">
                   <option value="">Select...</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
                   <option value="other">Other</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                <input type="date" value={form.date_of_birth} onChange={e => setForm({...form,date_of_birth:e.target.value})}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]" />
+              </div>
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Medical Flags</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Medical Conditions <span className="text-gray-400 font-normal">(optional)</span></label>
               <div className="flex flex-wrap gap-2">
                 {medicalOptions.map(flag => (
                   <button key={flag} type="button" onClick={() => toggleMedical(flag)}
@@ -200,14 +228,15 @@ const Students = () => {
                 ))}
               </div>
             </div>
+
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Emergency Contact Name</label>
                 <input value={form.emergency_contact.name} onChange={e => setForm({...form,emergency_contact:{...form.emergency_contact,name:e.target.value}})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="Name" />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="Parent name" />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Phone</label>
+                <label className="block text-xs text-gray-500 mb-1">Parent Phone Number</label>
                 <input value={form.emergency_contact.phone} onChange={e => setForm({...form,emergency_contact:{...form.emergency_contact,phone:e.target.value}})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="Phone" />
               </div>
@@ -217,6 +246,7 @@ const Students = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="e.g. Father" />
               </div>
             </div>
+
             <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
               <input type="checkbox" id="talent" checked={form.is_talent_flagged} onChange={e => setForm({...form,is_talent_flagged:e.target.checked})} className="w-4 h-4 accent-[#E76F51]" />
               <label htmlFor="talent" className="text-sm font-medium text-amber-800 flex items-center gap-2">
@@ -227,11 +257,12 @@ const Students = () => {
               <textarea value={form.talent_notes} onChange={e => setForm({...form,talent_notes:e.target.value})} rows={2}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E76F51]" placeholder="Describe athletic potential..." />
             )}
+
             <div className="flex gap-3 pt-2">
-              <button type="button" onClick={resetForm} className="flex-1 py-2 border border-gray-300 rounded-xl text-gray-600">Cancel</button>
-              <button type="button" onClick={save} disabled={!form.full_name}
-                className="flex-1 py-2 bg-[#E76F51] text-white rounded-xl hover:bg-[#d65f41] disabled:opacity-50">
-                {editing?"Update":"Add"} Student
+              <button type="button" onClick={resetForm} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-gray-600 text-sm">Cancel</button>
+              <button type="button" onClick={save} disabled={!form.full_name.trim() || saving}
+                className="flex-1 py-2.5 bg-[#E76F51] text-white rounded-xl hover:bg-[#d65f41] disabled:opacity-50 text-sm font-semibold transition-colors">
+                {saving ? "Saving..." : editing ? "Update Student" : "Enroll Student"}
               </button>
             </div>
           </div>
@@ -243,7 +274,7 @@ const Students = () => {
               <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50"
                 onClick={() => setExpanded(expanded===student.id?null:student.id)}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#1A3B2E] flex items-center justify-center text-white font-bold text-sm">
+                  <div className="w-10 h-10 rounded-full bg-[#1A3B2E] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                     {student.full_name.charAt(0)}
                   </div>
                   <div>
@@ -261,7 +292,7 @@ const Students = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={e=>{e.stopPropagation();openEdit(student)}} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit size={16} /></button>
-                  <button type="button" onClick={e=>{e.stopPropagation();del(student.id)}} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
+                  <button type="button" onClick={e=>{e.stopPropagation();del(student.id, student.full_name)}} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
                   {expanded===student.id?<ChevronUp size={18} className="text-gray-400"/>:<ChevronDown size={18} className="text-gray-400"/>}
                 </div>
               </div>
@@ -282,16 +313,24 @@ const Students = () => {
               )}
             </div>
           ))}
-          {filtered.length===0 && students.length===0 && (
-            <div className="bg-white rounded-2xl p-12 text-center text-gray-500">
-              <p className="text-4xl mb-3">👤</p>
-              <p className="font-medium text-gray-600 mb-1">No students yet</p>
-              <p className="text-sm text-gray-400">Click Add Student to enroll your first student</p>
+
+          {students.length > 0 && filtered.length === 0 && (
+            <div className="bg-white rounded-2xl p-8 text-center text-gray-400">
+              <p className="text-3xl mb-2">🔍</p>
+              <p className="font-medium text-gray-500">No students found in {filterGrade ? `Grade ${filterGrade}` : "your search"}</p>
+              <p className="text-sm mt-1">Try a different grade or search term</p>
             </div>
           )}
-          {filtered.length===0 && students.length>0 && (
-            <div className="bg-white rounded-2xl p-8 text-center text-gray-400">
-              <p>No students match your search</p>
+
+          {students.length === 0 && (
+            <div className="bg-white rounded-2xl p-12 text-center">
+              <p className="text-4xl mb-3">👤</p>
+              <p className="font-medium text-gray-600 mb-1">No students enrolled yet</p>
+              <p className="text-sm text-gray-400 mb-5">Click Add Student to enroll your first student</p>
+              <button onClick={() => { resetForm(); setShowForm(true) }}
+                className="bg-[#E76F51] text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-[#d65f41] transition-colors">
+                Add First Student
+              </button>
             </div>
           )}
         </div>
