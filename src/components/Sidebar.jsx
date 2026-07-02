@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, ClipboardCheck, BarChart3,
   BookOpen, FileText, ClipboardList, CalendarDays,
   Package, Settings, LogOut, ChevronLeft, ChevronRight,
-  Bot, Timer, CalendarClock, Library, UserCheck, School
+  Bot, Timer, CalendarClock, Library, UserCheck, School, GraduationCap
 } from "lucide-react"
 import { useState } from "react"
 
@@ -16,6 +16,7 @@ const Sidebar = () => {
   const adminLinks = [
     { to:"/dashboard", icon:LayoutDashboard, label:"Dashboard" },
     { to:"/classes", icon:School, label:"Classes" },
+    { to:"/teachers", icon:GraduationCap, label:"Teachers" },
     { to:"/students", icon:Users, label:"Students" },
     { to:"/attendance", icon:ClipboardCheck, label:"Attendance" },
     { to:"/skill-scores", icon:BarChart3, label:"Skill Scores" },
@@ -52,7 +53,7 @@ const Sidebar = () => {
   const links = role === "guardian" ? guardianLinks : role === "school_admin" ? adminLinks : teacherLinks
 
   return (
-    <aside className={`${collapsed ? "w-20" : "w-64"} bg-[#1A3B2E] h-screen sticky top-0 flex flex-col transition-all duration-300`}>
+    <aside className={`${collapsed?"w-20":"w-64"} bg-[#1A3B2E] h-screen sticky top-0 flex flex-col transition-all duration-300`}>
       <div className="p-4 flex items-center justify-between border-b border-white/10">
         {!collapsed && (
           <div>
@@ -84,11 +85,11 @@ const Sidebar = () => {
         {!collapsed && (
           <div className="px-3 py-2 bg-white/10 rounded-xl mb-2">
             <p className="text-xs font-medium text-white truncate">{profile?.full_name}</p>
-            <p className="text-[10px] text-white/50 capitalize">{profile?.role?.replace("_", " ")}</p>
+            <p className="text-[10px] text-white/50 capitalize">{profile?.role?.replace("_"," ")}</p>
           </div>
         )}
         <button onClick={signOut}
-          className={`flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors ${collapsed ? "justify-center" : ""}`}>
+          className={`flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors ${collapsed?"justify-center":""}`}>
           <LogOut size={18} />
           {!collapsed && "Sign Out"}
         </button>
