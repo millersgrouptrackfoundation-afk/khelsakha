@@ -20,6 +20,7 @@ const Sidebar = () => {
     { to:"/students", icon:Users, label:"Students" },
     { to:"/attendance", icon:ClipboardCheck, label:"Attendance" },
     { to:"/skill-scores", icon:BarChart3, label:"Skill Scores" },
+    { to:"/curriculum", icon:Library, label:"Curriculum" },
     { to:"/lesson-plans", icon:BookOpen, label:"Lesson Plans" },
     { to:"/cbsereports", icon:FileText, label:"CBSE Reports" },
     { to:"/coach-evaluations", icon:ClipboardList, label:"Coach Eval" },
